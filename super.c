@@ -180,8 +180,7 @@ static void f2fs_sb_release(struct kobject *kobj)
 }
 
 #define F2FS_ATTR_OFFSET(_struct_type, _name, _mode, _show, _store, _offset) \
-static struct f2fs_attr f2fs_attr_##_name = 
-{			\
+static struct f2fs_attr f2fs_attr_##_name = {			\
 	.attr = {.name = __stringify(_name), .mode = _mode },	\
 	.show	= _show,					\
 	.store	= _store,					\
@@ -400,6 +399,7 @@ static struct inode *f2fs_alloc_inode(struct super_block *sb)
 
 	/* Initialize f2fs-specific inode info */
 	fi->vfs_inode.i_version = 1;
+	//printk(KERN_ERR "\n -----------**********initialising counter to zero in *f2fs_alloc_inocde(Abhi1)**********----------");
 	atomic_set(&fi->dirty_pages, 0);
 	fi->i_current_depth = 1;
 	fi->i_advise = 0;
@@ -668,7 +668,7 @@ static int f2fs_remount(struct super_block *sb, int *flags, char *data)
 	bool need_stop_gc = false;
 
 	sync_filesystem(sb);
-	printk(KERN_ERR "\n----------************F2FS remounted in filesystem (Abhi)****----------\n");
+	printk(KERN_ERR "\n----------************F2FS remounted in filesystem (Abhi1)****----------\n");
 	/*
 	 * Save the old mount options in case we
 	 * need to restore them.
@@ -897,7 +897,7 @@ static void init_sb_info(struct f2fs_sb_info *sbi)
 {
 	struct f2fs_super_block *raw_super = sbi->raw_super;
 	int i;
-	printk(KERN_ERR "\n----------************inside init_sb_info (Abhi)****----------\n");
+	printk(KERN_ERR "\n----------************inside init_sb_info (Abhi1)****----------\n");
 	sbi->log_sectors_per_block =
 		le32_to_cpu(raw_super->log_sectors_per_block);
 	sbi->log_blocksize = le32_to_cpu(raw_super->log_blocksize);
@@ -977,7 +977,7 @@ static int f2fs_fill_super(struct super_block *sb, void *data, int silent)
 	bool retry = true, need_fsck = false;
 	char *options = NULL;
 	int i;
-	printk(KERN_ERR "\n----------************F2FS fill super (Abhi)****----------\n");
+	printk(KERN_ERR "\n----------************F2FS fill super (Abhi1)****----------\n");
 try_onemore:
 	/* allocate memory for f2fs-specific super block info */
 	sbi = kzalloc(sizeof(struct f2fs_sb_info), GFP_KERNEL);
@@ -1242,7 +1242,7 @@ free_sbi:
 static struct dentry *f2fs_mount(struct file_system_type *fs_type, int flags,
 			const char *dev_name, void *data)
 {
-	printk(KERN_ERR "\n----------************F2FS mounted in filesystem (Abhi)****----------\n");
+	printk(KERN_ERR "\n----------************F2FS mounted in filesystem (Abhi1)****----------\n");
 	return mount_bdev(fs_type, flags, dev_name, data, f2fs_fill_super);
 }
 
@@ -1312,7 +1312,7 @@ static int __init init_f2fs_fs(void)
 		goto free_kset;
 	f2fs_create_root_stats();
 	f2fs_proc_root = proc_mkdir("fs/f2fs", NULL);
-	printk(KERN_ERR "\n----------************F2FS Module initialize****----------\n");
+	printk(KERN_ERR "\n----------************F2FS Module initialize(Abhi1)****----------\n");
 	return 0;
 
 free_kset:
