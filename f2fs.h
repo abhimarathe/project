@@ -1253,7 +1253,8 @@ enum {
 
 static inline void set_inode_flag(struct f2fs_inode_info *fi, int flag)
 {
-	if(flag==1){printk(KERN_ERR "\n----------***********flag = 1 inside set_inode_flag(akshay)*******-----\n");}
+	if(flag==1){printk(KERN_ERR "\n----------********Inside set_inode_flag()[f2fs.h](akshay)***********----------\n");}
+	else{printk(KERN_ERR "\n----------********Inside set_inode_flag()[f2fs.h]---flag=%d---(akshay)***********----------\n",flag);}
 	if (!test_bit(flag, &fi->flags))
 		set_bit(flag, &fi->flags);
 }
@@ -1278,6 +1279,7 @@ static inline void set_acl_inode(struct f2fs_inode_info *fi, umode_t mode)
 static inline void get_inline_info(struct f2fs_inode_info *fi,
 					struct f2fs_inode *ri)
 {
+	printk(KERN_ERR "\n----------********Inside get_inline_info()[f2fs.h](akshay)***********----------\n");
 	if (ri->i_inline & F2FS_INLINE_XATTR)
 		set_inode_flag(fi, FI_INLINE_XATTR);
 	if (ri->i_inline & F2FS_INLINE_DATA)
@@ -1293,6 +1295,7 @@ static inline void get_inline_info(struct f2fs_inode_info *fi,
 static inline void set_raw_inline(struct f2fs_inode_info *fi,
 					struct f2fs_inode *ri)
 {
+	printk(KERN_ERR "\n----------********Inside set_raw_inline()[f2fs.h](akshay)***********----------\n");
 	ri->i_inline = 0;
 
 	if (is_inode_flag_set(fi, FI_INLINE_XATTR))
@@ -1383,7 +1386,9 @@ static inline void *inline_data_addr(struct page *page)
 
 static inline int f2fs_has_inline_dentry(struct inode *inode)
 {
+	printk(KERN_ERR "\n----------********Inside f2fs_has_inline_dentry()[f2fs.h](akshay)***********----------\n");
 	return is_inode_flag_set(F2FS_I(inode), FI_INLINE_DENTRY);
+	
 }
 
 static inline void f2fs_dentry_kunmap(struct inode *dir, struct page *page)
