@@ -101,6 +101,15 @@ static inline bool has_enough_invalid_blocks(struct f2fs_sb_info *sbi)
 	return false;
 }
 
+/*static inline void print_state(struct f2fs_sb_info *sbi)
+{
+        block_t invalid_user_blocks = sbi->user_block_count -
+                                        written_block_count(sbi);
+	printk(KERN_ERR "\n----------***********Number of invalid blocks : %u *****----------\n",invalid_user_blocks);
+        printk(KERN_ERR "\n----------************Number of free user blocks: %u ****----------\n", free_user_blocks(sbi));
+              
+}*/
+
 static inline int is_idle(struct f2fs_sb_info *sbi)
 {
 	struct block_device *bdev = sbi->sb->s_bdev;
