@@ -44,7 +44,7 @@ static int gc_thread_func(void *data)
 			break;
                 printk(KERN_ERR "\n----------************Inside gc_thread_func, Starting Garbage Collection****----------\n");
 
-		printk(KERN_ERR "\n----------***********Dirty Counter in gc_thread_func:: %d (Abhi)*******-----\n",(sbi->stat_info)->dirty_count);
+		/*printk(KERN_ERR "\n----------***********Dirty Counter in gc_thread_func:: %d (Abhi)*******-----\n",(sbi->stat_info)->dirty_count);*/
 		if (sbi->sb->s_writers.frozen >= SB_FREEZE_WRITE) {
 			increase_sleep_time(gc_th, &wait_ms);
 			continue;
@@ -82,8 +82,10 @@ static int gc_thread_func(void *data)
 
 		/* if return value is not zero, no victim was selected */
 		if (f2fs_gc(sbi))
+		{
+			printk(KERN_ERR "--------------**************No any victim was selected at this invoke : %d  (Abhi)********--------",(sbi)->bg_gc);
 			wait_ms = gc_th->no_gc_sleep_time;
-
+		}
 		/* balancing f2fs's metadata periodically */
 		f2fs_balance_fs_bg(sbi);
 
@@ -111,7 +113,7 @@ int start_gc_thread(struct f2fs_sb_info *sbi)
 
 	sbi->gc_thread = gc_th;
 	init_waitqueue_head(&sbi->gc_thread->gc_wait_queue_head);
-        printk(KERN_ERR "\n---------*********Inside start_gc_thread, Calling Gc thread(Abhi)*****---------\n");
+       /*printk(KERN_ERR "\n---------*********Inside start_gc_thread, Calling Gc thread(Abhi)*****---------\n");*/
 	sbi->gc_thread->f2fs_gc_task = kthread_run(gc_thread_func, sbi,
 			"f2fs_gc-%u:%u", MAJOR(dev), MINOR(dev));
 	if (IS_ERR(gc_th->f2fs_gc_task)) {
@@ -269,7 +271,7 @@ static int get_victim_by_default(struct f2fs_sb_info *sbi,
 
 	mutex_lock(&dirty_i->seglist_lock);
 
-	printk(KERN_ERR "\n----------***********In get_vict_by_d (Abhi)*******-----\n");
+	/*printk(KERN_ERR "\n----------***********In get_vict_by_d (Abhi)*******-----\n");*/
 
 //	for(i=0;i<9;i++)
 	//printk(KERN_ERR "\n----------***********In get_vict_by_d no of Dirty segments: in :: %d are :: %d (Abhi)*******-----\n",i,dirty_i->nr_dirty[i]);
@@ -325,7 +327,7 @@ static int get_victim_by_default(struct f2fs_sb_info *sbi,
 		}
 	}
 	if (p.min_segno != NULL_SEGNO) {
-		printk(KERN_ERR "\n----------*******In get_victi_b_def min_cost :: %d min_segno :: %d (Abhi)*******-----\n", p.min_cost, p.min_segno);
+		//printk(KERN_ERR "\n----------*******In get_victi_b_def min_cost :: %d min_segno :: %d (Abhi)*******-----\n", p.min_cost, p.min_segno);
 got_it:
 		if (p.alloc_mode == LFS) {
 			secno = GET_SECNO(sbi, p.min_segno);
@@ -412,7 +414,7 @@ static void gc_node_segment(struct f2fs_sb_info *sbi,
 	bool initial = true;
 	struct f2fs_summary *entry;
 	int off;
-
+	printk(KERN_ERR "\n----------***********gc_node_segment[gc.c]*******-----\n");
 next_step:
 	entry = sum;
 
@@ -486,6 +488,27 @@ block_t start_bidx_of_node(unsigned int node_ofs, struct f2fs_inode_info *fi)
 {
 	unsigned int indirect_blks = 2 * NIDS_PER_BLOCK + 4;
 	unsigned int bidx;
+	//printk(KERN_ERR "\n----------***********In start_of_node no of Dirty Pages::: %d (Abhi)*******-----\n",fi->dirty_pages.counter);
+	if (node_ofs == 0)
+		return 0;
+
+	if (node_ofs <= 2) {
+		bidx = node_ofs - 1;
+	} else if (node_ofs <= indirect_blks) {
+		int dec = (node_ofs - 4) / (NIDS_PER_BLOCK + 1);
+		bidx = node_ofs - 2 - dec;
+	} else {
+		int dec = (node_ofs - indirect_blks - 3) / (NIDS_PER_BLOCK + 1);
+		bidx = node_ofs - 5 - dec;
+	}
+	return bidx * ADDRS_PER_BLOCK + ADDRS_PER_INODE(fi);
+}
+
+block_t start_bidx_of_node1(unsigned int node_ofs, struct f2fs_inode_info *fi)
+{
+	unsigned int indirect_blks = 2 * NIDS_PER_BLOCK + 4;
+	unsigned int bidx;
+	
 	printk(KERN_ERR "\n----------***********In start_of_node no of Dirty Pages::: %d (Abhi)*******-----\n",fi->dirty_pages.counter);
 	if (node_ofs == 0)
 		return 0;
@@ -535,22 +558,33 @@ static int check_dnode(struct f2fs_sb_info *sbi, struct f2fs_summary *sum,
 
 static void move_data_page(struct inode *inode, struct page *page, int gc_type)
 {
+	//printk(KERN_ERR "\n----------************Inside move_data_page()[gc.c]****----------\n");
 	struct f2fs_io_info fio = {
 		.type = DATA,
 		.rw = WRITE_SYNC,
 	};
+
+        //printk(KERN_ERR "\n----------*******move_data_page gc type :%d   ******----------\n",gc_type);
+
 	
 	if (gc_type == BG_GC) {
 		if (PageWriteback(page))
 			goto out;
+		printk(KERN_ERR "\n----------********before set_page_dirty*******----------\n");
 		set_page_dirty(page);
-		set_cold_data(page);
+	        printk(KERN_ERR "\n----------********after set_page_dirty*******----------\n");
+
+		set_cold_data1(page);
 	} else {
 		f2fs_wait_on_page_writeback(page, DATA);
 
-		if (clear_page_dirty_for_io(page))
+		if (clear_page_dirty_for_io(page)){
+			printk(KERN_ERR "\n----------************before inode_dec_dirty_pages[gc.c]*********----------\n");
 			inode_dec_dirty_pages(inode);
+		}
 		set_cold_data(page);
+        printk(KERN_ERR "\n----------***********Really??? FG_GC [gc.c]****----------\n");
+
 		do_write_data_page(page, &fio);
 		clear_cold_data(page);
 	}
@@ -573,19 +607,23 @@ static void gc_data_segment(struct f2fs_sb_info *sbi, struct f2fs_summary *sum,
 	block_t start_addr;
 	int off;
 	int phase = 0;
-
+	int oldphase = 0;
 	start_addr = START_BLOCK(sbi, segno);
 
 next_step:
 	entry = sum;
-
+	printk(KERN_ERR "\n----------********sbi->blocks_per_seg=%d[gc.c]*******-----\n",sbi->blocks_per_seg);
 	for (off = 0; off < sbi->blocks_per_seg; off++, entry++) {
 		struct page *data_page;
 		struct inode *inode;
 		struct node_info dni; /* dnode info for the data */
 		unsigned int ofs_in_node, nofs;
 		block_t start_bidx;
-
+		if(oldphase != phase){
+			printk(KERN_ERR "\n----------********currentphase=%d[gc.c]*******-----\n",phase);
+			oldphase=phase;
+		}
+		printk(KERN_ERR "\n----------$$$$$$$$$$$gc_data_segment() block_per_segno=%d $$$$$$$$$$----------\n",off);
 		/* stop BG_GC if there is not enough free sections. */
 		if (gc_type == BG_GC && has_not_enough_free_secs(sbi, 0))
 			return;
@@ -610,11 +648,11 @@ next_step:
 		ofs_in_node = le16_to_cpu(entry->ofs_in_node);
 
 		if (phase == 2) {
-			inode = f2fs_iget(sb, dni.ino);
+			inode = f2fs_iget1(sb, dni.ino);
 			if (IS_ERR(inode) || is_bad_inode(inode))
 				continue;
-
-			start_bidx = start_bidx_of_node(nofs, F2FS_I(inode));
+			printk(KERN_ERR "\n----------********before start_bidx[gc.c]*******-----\n");
+			start_bidx = start_bidx_of_node1(nofs, F2FS_I(inode));
 
 			data_page = find_data_page(inode,
 					start_bidx + ofs_in_node, false);
@@ -631,7 +669,8 @@ next_step:
 		/* phase 3 */
 		inode = find_gc_inode(gc_list, dni.ino);
 		if (inode) {
-			start_bidx = start_bidx_of_node(nofs, F2FS_I(inode));
+			printk(KERN_ERR "\n----------********before start_bidx1[gc.c]*******-----\n");
+			start_bidx = start_bidx_of_node1(nofs, F2FS_I(inode));
 			data_page = get_lock_data_page(inode,
 						start_bidx + ofs_in_node);
 			if (IS_ERR(data_page))
@@ -665,7 +704,7 @@ static int __get_victim(struct f2fs_sb_info *sbi, unsigned int *victim,
 	int ret;
 
 	mutex_lock(&sit_i->sentry_lock);
-	printk(KERN_ERR "\n----------******** INside __get_victim calling get_victim(Abhi)*******-----\n");
+	/*printk(KERN_ERR "\n----------******** INside __get_victim calling get_victim(Abhi)*******-----\n");*/
 	ret = DIRTY_I(sbi)->v_ops->get_victim(sbi, victim, gc_type,
 					      NO_CHECK_TYPE, LFS);
 	mutex_unlock(&sit_i->sentry_lock);
@@ -708,6 +747,7 @@ int f2fs_gc(struct f2fs_sb_info *sbi)
 	unsigned int segno, i;
 	int gc_type = BG_GC;
 	int nfree = 0;
+	int sec_freed=0;
 	int ret = -1;
 	struct cp_control cpc;
 	struct gc_inode_list gc_list = {
@@ -729,7 +769,7 @@ gc_more:
 		write_checkpoint(sbi, &cpc);
 	}
 
-	printk(KERN_ERR "\n----------*****before __get_victim in f2fs_gc(Abhi)***-----\n");
+	/*printk(KERN_ERR "\n----------*****before __get_victim in f2fs_gc(Abhi)***-----\n");*/
 	if (!__get_victim(sbi, &segno, gc_type))
 		goto stop;
 	ret = 0;
@@ -738,9 +778,12 @@ gc_more:
 	if (sbi->segs_per_sec > 1)
 		ra_meta_pages(sbi, GET_SUM_BLOCK(sbi, segno), sbi->segs_per_sec,
 								META_SSA);
-	printk(KERN_ERR "\n----------***********Segment per sections in f2fs_gc:: %d (Abhi)*******-----\n",sbi->segs_per_sec);
+	/*printk(KERN_ERR "\n----------***********Segment per sections in f2fs_gc:: %d (Abhi)*******-----\n",sbi->segs_per_sec);*/
 	for (i = 0; i < sbi->segs_per_sec; i++)
 		do_garbage_collect(sbi, segno + i, &gc_list, gc_type);
+	
+	if (i == sbi->segs_per_sec && gc_type == FG_GC)
+		sec_freed++;
 
 	if (gc_type == FG_GC) {
 		sbi->cur_victim_sec = NULL_SEGNO;
@@ -755,6 +798,8 @@ gc_more:
 		write_checkpoint(sbi, &cpc);
 stop:
 	mutex_unlock(&sbi->gc_mutex);
+	printk(KERN_ERR "\n----------***********nfreed : %d in f2fs_gc (Abhi)*******-----\n",nfree);
+	printk(KERN_ERR "\n----------***********freed sections: %d in f2fs_gc (Abhi)*******-----\n",sec_freed);
 	printk(KERN_ERR "\n----------***********Dirty Counter in f2fs_gc:: %d (Abhi)*******-----\n",(sbi->stat_info)->dirty_count);
 	put_gc_inode(&gc_list);
 	return ret;
@@ -764,4 +809,3 @@ void build_gc_manager(struct f2fs_sb_info *sbi)
 {
 	DIRTY_I(sbi)->v_ops = &default_v_ops;
 }
-
