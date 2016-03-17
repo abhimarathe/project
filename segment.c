@@ -238,8 +238,10 @@ void commit_inmem_pages(struct inode *inode, bool abort)
 			lock_page(cur->page);
 			if (cur->page->mapping == inode->i_mapping) {
 				f2fs_wait_on_page_writeback(cur->page, DATA);
-				if (clear_page_dirty_for_io(cur->page))
+				if (clear_page_dirty_for_io(cur->page)){
+					//printk(KERN_ERR "\n----------************before inode_dec_dirty_pages[segment.c]*********----------\n");
 					inode_dec_dirty_pages(inode);
+				}
 				trace_f2fs_commit_inmem_page(cur->page, INMEM);
 				do_write_data_page(cur->page, &fio);
 				submit_bio = true;
